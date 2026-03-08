@@ -1,3 +1,5 @@
+let allIssues = [];
+
 // tabs button functionality
 
 const tabButtons = document.querySelectorAll(".tab-btn");
@@ -5,9 +7,20 @@ tabButtons.forEach((button) => {
   button.addEventListener("click", function () {
     tabButtons.forEach((btn) => btn.classList.remove("btn-primary")); //remove the blue color
     this.classList.add("btn-primary"); //adding the blue color
+
+    // Get status to filter
+    const tabText = this.innerText.toLowerCase();
+
+    if (tabText === "all") {
+      displayIssues(allIssues);
+    } else {
+      const filtered = allIssues.filter((issue) => issue.status === tabText);
+      displayIssues(filtered);
+    }
   });
 });
 
+// load cardData from API
 //   priority
 function getPriorityBadge(priority) {
   if (priority === "high") {
@@ -70,8 +83,70 @@ function getLabels(labels) {
 const loadIssue = () => {
   fetch("https://phi-lab-server.vercel.app/api/v1/lab/issues")
     .then((res) => res.json())
-    .then((data) => displayIssues(data.data));
+    .then((data) => {
+      allIssues = data.data; // save globally
+      displayIssues(allIssues);
+    });
 };
+
+// modal details function
+const loadCardDetail = async (id) => {
+  const url = `https://phi-lab-server.vercel.app/api/v1/lab/issue/${id}`;
+  //console.log(url);
+  const res = await fetch(url);
+  const details = await res.json();
+  displayCardDetail(details.data);
+};
+
+const displayCardDetail = (issue) => {
+  console.log(issue);
+  const detailBox = document.getElementById("details-container");
+
+    // call functions
+  const priority = getPriorityBadge(issue.priority);
+  const labels = getLabels(issue.labels);
+
+
+  detailBox.innerHTML = `
+  
+  <div class="space-y-6">
+      <h2 class="text-xl font-bold">${issue.title}</h2>
+      <div class="flex gap-3 items-center">
+        <div class="${issue.status === 'closed' ? 'bg-purple-500' : 'bg-[#00A96E]'} text-white rounded-full px-3 py-1">
+          ${issue.status.charAt(0).toUpperCase() + issue.status.slice(1)}
+        </div>
+
+        <p class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-gray-400 inline-block"></span>
+          Opened by ${issue.author}
+        </p>
+
+        <p class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-gray-400 inline-block"></span>
+          ${new Date(issue.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">${labels}</div>
+      <p class="text-gray-500">${issue.description}</p>
+
+      <div class="flex justify-between w-11/12 mx-auto bg-sky-50 rounded-2xl p-4">
+        <div>
+          <p class="text-gray-500">Assignee:</p>
+          <h4 class="text-sm font-bold">${issue.assignee || "Unassigned"}</h4>
+        </div>
+        <div>
+          <p class="text-gray-500">Priority:</p>
+          <h4>${priority}</h4>
+        </div>
+      </div>
+    </div>
+
+    `;
+
+  document.getElementById("card_modal").showModal();
+};
+
 const displayIssues = (issues) => {
   // step-1
   const container = document.getElementById("issue-container");
@@ -95,9 +170,9 @@ const displayIssues = (issues) => {
     const card = document.createElement("div");
     card.innerHTML = `
 
-        <div class="space-y-4 shadow-2xl p-5 rounded-2xl h-full ${borderColor}">
+        <div onclick="loadCardDetail(${issue.id})" class="space-y-4 shadow-2xl p-5 rounded-2xl h-full ${borderColor}">
 
-      <div class="flex flex-wrap justify-between items-center">
+      <div  class="flex flex-wrap justify-between items-center">
         <img src="${statusImg}" alt="">
         ${priority}
       </div>
