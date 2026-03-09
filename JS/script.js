@@ -20,8 +20,50 @@ tabButtons.forEach((button) => {
   });
 });
 
+
+// search bar section
+const searchInput = document.getElementById("search-input");
+searchInput.addEventListener("input", function () {
+
+  const spinner = document.getElementById("loading-spinner");
+  spinner.classList.remove("hidden");
+
+  const searchText = searchInput.value.trim().toLowerCase();
+
+  // If input is empty, show all issues
+  if (!searchText) {
+    spinner.classList.add("hidden");
+    displayIssues(allIssues);
+    return;
+  }
+
+  // Filter issues only if match first word equals search text
+  const filtered = allIssues.filter((issue) => {
+    const firstWord = issue.title.split(" ")[0].toLowerCase();
+    return firstWord === searchText; // First word exact match
+  });
+
+  displayIssues(filtered);
+  spinner.classList.add("hidden");
+});
+
+
+// rendering data from API
+ const searchIssues = async () => {
+
+  const url = `https://phi-lab-server.vercel.app/api/v1/lab/issues/search?q=${searchText}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  spinner.classList.add("hidden");
+  displayIssues(data.data);
+  
+};
+
+
+
+
 // load cardData from API
-//   priority
+    // priority function
 function getPriorityBadge(priority) {
   if (priority === "high") {
     return `<div class="badge px-6 py-3 text-red-500 bg-red-100">High</div>`;
@@ -36,7 +78,7 @@ function getPriorityBadge(priority) {
   }
 }
 
-// levels
+// lebels function
 function getLabels(labels) {
   return labels
     .map((label) => {
@@ -81,10 +123,15 @@ function getLabels(labels) {
 // load all cards
 
 const loadIssue = () => {
+  // load spinner
+  const spinner = document.getElementById("loading-spinner");
+  spinner.classList.remove("hidden");
+
   fetch("https://phi-lab-server.vercel.app/api/v1/lab/issues")
     .then((res) => res.json())
     .then((data) => {
       allIssues = data.data; // save globally
+      spinner.classList.add("hidden"); // hide spinner
       displayIssues(allIssues);
     });
 };
@@ -105,8 +152,6 @@ const displayCardDetail = (issue) => {
     // call functions
   const priority = getPriorityBadge(issue.priority);
   const labels = getLabels(issue.labels);
-
-
   detailBox.innerHTML = `
   
   <div class="space-y-6">
@@ -152,6 +197,18 @@ const displayIssues = (issues) => {
   const container = document.getElementById("issue-container");
   container.innerHTML = "";
 
+  if (issues.length === 0) {
+    container.innerHTML = `
+      <div class="text-center col-span-full py-20 space-y-4">
+        <i class="fa-solid fa-file-circle-minus text-5xl text-gray-400"></i>
+        <h2 class="text-2xl font-bold text-gray-600">No Issues Found</h2>
+        <p class="text-gray-400">Try searching with a different keyword.</p>
+      </div>
+    `;
+    return;
+  }
+
+
   // step-2
   issues.forEach((issue) => {
     // status image
@@ -194,6 +251,7 @@ const displayIssues = (issues) => {
 
         
         `;
+        // step-4
     container.appendChild(card);
   });
 };
